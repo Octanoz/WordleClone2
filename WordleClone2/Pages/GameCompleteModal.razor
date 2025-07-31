@@ -1,0 +1,53 @@
+﻿@using WordleClone2.Components.Model
+@using WordleClone2.Components.Services
+
+@inject DictionaryService dictionaryService
+
+<div class="modal-overlay" @onclick="OnOverlayClick">
+    <div class="modal" @onclick:stopPropagation="true">
+        <div class="modal-header">
+            <h2>@Title</h2>
+        </div>
+
+        <div class="modal-body">
+            <p><strong>The target word was: @TargetWord</strong></p>
+            <p><strong>You used @GuessDisplay guesses.</strong></p>
+
+            <div class="definition-section">
+                <h3>Definition:</h3>
+                @foreach (var meaning in WordDefinition.Meanings.Take(2))
+                {
+                    if (meaning.Definitions.Any())
+                    {
+                        <p>@meaning.PartOfSpeech</p>
+                        <p>@meaning.Definitions.FirstOrDefault()?.Defined</p>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string? Title { get; set; }
+    [Parameter]
+    public string? TargetWord { get; set; }
+    [Parameter]
+    public int GuessCount { get; set; }
+    [Parameter]
+    public bool PlayerWins { get; set; }
+    [Parameter]
+    public EventCallback OnPlayAgainClicked { get; set; }
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+    [Parameter]
+    public WordDefinition? WordDefinition { get; set; }
+
+
+
+    string GuessDisplay => PlayerWins ? GuessCount.ToString() : "all 6";
+
+    async Task OnOverlayClick() => await OnClose.InvokeAsync();
+
+}
