@@ -18,26 +18,25 @@
         <ul class="attempts-list">
             @if (guesses is not null && colors is not null)
             {
-            @for (int attemptIndex = 0; attemptIndex < guesses?.Length; attemptIndex++)
-            {
-                @* int localAttemptIndex = attemptIndex; *@
-                <li class="attempt">
-                    @for (int i = 0; i < 5; i++)
-                    {
-                        <div class="letter-square @(currentGuess > attemptIndex ? "checking" : "")" style="--d: @(i); background: var(@(colors[attemptIndex][i]));">
-                            @if (guesses.Length > attemptIndex && guesses[attemptIndex].Length > i)
-                            {
-                                <p class="input-letter">@guesses[attemptIndex][i]</p>                                
-                            }
-                        </div>
-                    }
-                </li>
-            }
+                @for (int attemptIndex = 0; attemptIndex < guesses?.Length; attemptIndex++)
+                {
+                    @* int localAttemptIndex = attemptIndex; *@
+                    <li class="attempt">
+                        @for (int i = 0; i < 5; i++)
+                        {
+                            <div class="letter-square @(currentGuess > attemptIndex ? "checking" : "")" style="--d: @(i); background: var(@(colors[attemptIndex][i]));">
+                                @if (guesses.Length > attemptIndex && guesses[attemptIndex].Length > i)
+                                {
+                                    <p class="input-letter">@guesses[attemptIndex][i]</p>
+                                }
+                            </div>
+                        }
+                    </li>
+                }
             }
         </ul>
     </div>
-    <section class="word-definition @(wordDefinitionClass) @(isExpanded ? "expanded" : "")"  @onclick="ToggleExpand">
-        <div class="definition-content">
+    <section class="word-definition @(wordDefinitionClass)">
         @if (currentWordDefinition is not null)
         {
             <h3>@(currentWordDefinition.Word)</h3>
@@ -50,8 +49,6 @@
             <h5>noun?</h5>
             <p class="definition">Delete some letters and try again on the same attempt.</p>
         }
-        </div>
-        <button type="button" class="triangle"></button>
     </section>
     <div class="keyboard">
         <div class="row top-row">
@@ -67,7 +64,7 @@
             }
         </div>
         <div class="row bottom-row">
-            <button type="button" @onclick="() => CheckWord(guesses[currentGuess])" class="key small-key">ENTER</button>
+            <button type="button" @onclick="() => CheckWord(guesses?[currentGuess])" class="key small-key">ENTER</button>
             @foreach (var letter in bottomRow)
             {
                 <button type="button" @onclick="() => AddLetter(letter)" class="key @GetKeyClass(letter)">@letter</button>
@@ -77,14 +74,29 @@
     </div>
 </section>
 
+@if (showGameCompleteModal)
+{
+    <GameCompleteModal
+        Title="@(playerWins ? "You win!" : "Game Over")"
+        TargetWord="@word"
+        GuessCount="@currentGuess"
+        PlayerWins="@playerWins"
+        WordDefinition="targetWordDefinition"
+        OnClose="ResetGame" />
+}
+
 @code {
     static readonly char[] topRow = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'];
     static readonly char[] middleRow = ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'];
     static readonly char[] bottomRow = ['Z', 'X', 'C', 'V', 'B', 'N', 'M'];
     static readonly string[] wordsArray = ["INNER", "BONUS", "RIDER", "LUNAR", "FLOWS", "NYMPH", "JUMPY", "CRISP", "PLAZA", "QUART", "QUICK", "SMITE", "KNOLL"];
 
+    bool showGameCompleteModal = false;
+    bool playerWins = false;
+
     //The definition of the guessed word if available in the dictionary api
     WordDefinition? currentWordDefinition;
+    WordDefinition? targetWordDefinition;
     string? word;
     int currentGuess = 0;
 
@@ -99,7 +111,6 @@
 
     ElementReference gameElement;
     string wordDefinitionClass = "";
-    bool isExpanded = false;
 
     private async Task InitializeGame()
     {
@@ -111,9 +122,7 @@
             Array.Fill(colors[i], "--empty");
 
             wordDefinitionClass = "";
-
-            // guesses[i] = new string(' ', 5).ToCharArray();
-            // colors[i] = Enumerable.Repeat("--empty", 5).ToArray();
+            playerWins = false;
         }
 
         //Set key states initial state
@@ -124,6 +133,7 @@
 
         currentGuess = 0;
         currentWordDefinition = await dictionaryService.GetWordDefinitionAsync("guess");
+        targetWordDefinition = await dictionaryService.GetWordDefinitionAsync(word.ToLower());
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -157,6 +167,9 @@
 
     void AddLetter(char c)
     {
+        if (playerWins)
+            return;
+
         int emptyIndex = Array.IndexOf(guesses[currentGuess], ' ');
         if (emptyIndex >= 0)
         {
@@ -166,6 +179,9 @@
 
     void RemoveLetter()
     {
+        if (playerWins)
+            return;
+
         int emptyIndex = Array.IndexOf(guesses[currentGuess], ' ');
         if (emptyIndex > 0)
         {
@@ -177,74 +193,90 @@
         }
     }
 
-    async Task CheckWord(char[] guess)
+    async Task CheckWord(char[]? guess)
     {
-        //Colors: grey - unusued | black - not in the word | yellow - in the word but wrong position | green - in the word and right position
         ArgumentNullException.ThrowIfNull(word);
-        if (!guess.All(Char.IsLetter))
+        if (guess is null || !guess.All(Char.IsLetter) || currentGuess >= 6 || playerWins)
             return;
 
         string guessedWord = new string(guess).ToLower();
-
         currentWordDefinition = await dictionaryService.GetWordDefinitionAsync(guessedWord);
-
         if (currentWordDefinition is null)
         {
             await TriggerFlashAnimation();
             return;
         }
 
-        string[] currentColors = Enumerable.Repeat("--grey", 5).ToArray();
-        char[] target = word.ToCharArray();
-        Dictionary<char, int> targetLetters = target.GroupBy(c => c).ToDictionary(g => g.Key, g => g.Count());
-
-        for (int i = 0; i < 5; i++)
-        {
-            //Change keyboard key to green if the letter was in the right location
-            //Reduce the number of the given letter by 1 in the dictionary
-            if (guess[i] == target[i])
-            {
-                currentColors[i] = "--green";
-                targetLetters[guess[i]]--;
-                keyStates[guess[i]] = "green-key";
-            }
-        }
-
-        for (int i = 0; i < 5; i++)
-        {
-            char currentLetter = guess[i];
-            if (currentColors[i] != "--green" && targetLetters.TryGetValue(currentLetter, out int frequency))
-            {
-                if (frequency > 0)
-                {
-                    currentColors[i] = "--yellow";
-                    targetLetters[currentLetter]--;
-                    if (keyStates[currentLetter] != "green-key") //Prevent changing the color on a key that is already green
-                    {
-                        keyStates[currentLetter] = "yellow-key";
-                    }
-                }
-                else
-                {
-                    if (keyStates[currentLetter] != "green-key" && keyStates[currentLetter] != "yellow-key")
-                    {
-                        keyStates[currentLetter] = "grey-key";
-                    }
-                }
-            }
-            else if (currentColors[i] != "--green" && keyStates[currentLetter] != "green-key" && keyStates[currentLetter] != "yellow-key")
-            {
-                keyStates[currentLetter] = "grey-key";
-            }
-        }
-
-        colors[currentGuess] = currentColors;
+        colors[currentGuess] = EvaluateGuess(guess, word);
         currentGuess++;
+
+        if (guessedWord == word.ToLower())
+        {
+            playerWins = true;
+            StateHasChanged();
+            await Task.Delay(1000);
+            ShowGameCompleteModal(playerWins);
+            return;
+        }
+        else if (currentGuess is 6)
+        {
+            StateHasChanged();
+            await Task.Delay(500);
+            ShowGameCompleteModal(playerWins);
+            return;
+        }
+
         StateHasChanged();
     }
 
+    private string[] EvaluateGuess(char[] guess, string targetWord)
+    {
+        string[] cellColors = Enumerable.Repeat(WordleColors.GreyCell, 5).ToArray(); //Set all cells to grey
+        Dictionary<char, int> targetLetters = targetWord.GroupBy(c => c).ToDictionary(g => g.Key, g => g.Count());
+
+        //First check for greens
+        for (int i = 0; i < 5; i++)
+        {
+            char letter = guess[i];
+            if (letter == targetWord[i])
+            {
+                cellColors[i] = WordleColors.GreenCell;
+                keyStates[letter] = WordleColors.GreenKey;
+                targetLetters[letter]--;
+            }
+        }
+
+        //Second pass, assign yellow
+        for (int i = 0; i < 5; i++)
+        {
+            if (cellColors[i] is WordleColors.GreenCell) // Don't overwrite greens
+                continue;
+
+            char letter = guess[i];
+            if (targetLetters.TryGetValue(letter, out int count) && count > 0)
+            {
+                cellColors[i] = WordleColors.YellowCell;
+                keyStates[letter] = WordleColors.YellowKey;
+                targetLetters[letter]--;
+            }
+            else
+            {
+                keyStates[letter] = WordleColors.BlackKey;
+            }
+        }
+
+        return cellColors;
+    }
+
     //Helper method to get the key class based on its state
-    private string GetKeyClass(char letter) => keyStates.ContainsKey(letter) ? keyStates[letter] : "";
+    private string GetKeyClass(char letter) => keyStates.GetValueOrDefault(letter, "");
+
+    private void ShowGameCompleteModal(bool wordGuessed)
+    {
+        playerWins = wordGuessed;
+        showGameCompleteModal = true;
+        StateHasChanged();
+    }
 
     private async Task TriggerFlashAnimation()
     {
@@ -256,12 +288,6 @@
         wordDefinitionClass = "";
         StateHasChanged();
     }
-
-    private void ToggleExpand()
-    {
-        isExpanded ^= true;
-    }
-
 
     private async Task ResetGame()
     {

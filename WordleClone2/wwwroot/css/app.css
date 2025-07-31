@@ -173,33 +173,13 @@ h1 {
 @keyframes spin { 50% { rotate: x 90deg; } }
 
 .word-definition {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     height: 4rem;
     margin-bottom: 1em;
     padding: 0.5em;
     border: ridge navy;
     background: navajowhite;
-    transition: height 300ms ease allow-discrete;
-    contain: paint;
-
-    & .triangle {
-        all: initial;
-        border-inline: 16px solid transparent;
-        border-top: 16px solid #333;
-        transition: transform 300ms ease;
-    }
-
-    &.expanded {
-        height: auto;
-        transition: all 300ms ease allow-discrete;
-
-        & .triangle { rotate: 180deg; }
-    }
+    overflow: auto;
 }
-
-    @starting-style { .word-definition { height: 4rem; } }
 
 .border-red { 
     border: ridge firebrick;
@@ -254,18 +234,18 @@ h1 {
 }
 
 .key.green-key {
-    background: #6AAA64 !important;
-    color: #FFF !important;
+    background: #6AAA64;
+    color: #FFF;
 }
 
 .key.yellow-key {
-    background: #C9B458 !important;
-    color: #FFF !important;
+    background: #C9B458;
+    color: #FFF;
 }
 
-.key.grey-key {
-    background: #222 !important;
-    color: #FFF !important;
+.key.black-key {
+    background: #222;
+    color: #FFF;
 }
 
 .button { border: 2px outset #3338; }
@@ -287,3 +267,57 @@ h1 {
 }
 
 .reset-button:hover { background-color: #6AAA64; }
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    background-color: #0008;
+    z-index: 1000;
+}
+
+.modal {
+    background: #FFF;
+    border-radius: 8px;
+    padding: 1.25rem;
+    max-width: calc(100% - 2rem);
+    box-shadow: 0 4px 6px #0004;
+}
+
+.modal-header h2 {
+    margin: 0 0 1rem 0;
+    color: #333;
+}
+
+.modal-body { margin-bottom: 1rem; }
+.modal-body p { margin: 0.5rem 0; }
+
+.definition-section {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+}
+
+.modal-footer {
+    text-align: center;
+}
+
+    .modal-footer button {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+        .modal-footer button:hover {
+            background-color: #45a049;
+        }
