@@ -15,15 +15,16 @@
 
             <div class="definition-section">
                 <h3>Definition:</h3>
-                @foreach (var meaning in WordDefinition.Meanings.Take(2))
+                @foreach (var meaning in WordDefinition!.Meanings.Where(m => m.Definitions.Any()).Take(2))
                 {
-                    if (meaning.Definitions.Any())
-                    {
-                        <p>@meaning.PartOfSpeech</p>
-                        <p>@meaning.Definitions.FirstOrDefault()?.Defined</p>
-                    }
+                    <p>@meaning.PartOfSpeech</p>
+                    <p>@meaning.Definitions.FirstOrDefault()?.Defined</p>
                 }
             </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="play-again-button" @onclick="OnPlayAgainClick">Play Again</button>
         </div>
     </div>
 </div>
@@ -45,9 +46,8 @@
     public WordDefinition? WordDefinition { get; set; }
 
 
-
     string GuessDisplay => PlayerWins ? GuessCount.ToString() : "all 6";
 
     async Task OnOverlayClick() => await OnClose.InvokeAsync();
-
+    async Task OnPlayAgainClick() => await OnClose.InvokeAsync();
 }

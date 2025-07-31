@@ -82,7 +82,7 @@
         GuessCount="@currentGuess"
         PlayerWins="@playerWins"
         WordDefinition="targetWordDefinition"
-        OnClose="ResetGame" />
+        OnClose="CloseModal" />
 }
 
 @code {
@@ -214,14 +214,14 @@
         {
             playerWins = true;
             StateHasChanged();
-            await Task.Delay(1000);
+            await Task.Delay(2000);
             ShowGameCompleteModal(playerWins);
             return;
         }
         else if (currentGuess is 6)
         {
             StateHasChanged();
-            await Task.Delay(500);
+            await Task.Delay(1600);
             ShowGameCompleteModal(playerWins);
             return;
         }
@@ -276,6 +276,13 @@
         playerWins = wordGuessed;
         showGameCompleteModal = true;
         StateHasChanged();
+    }
+
+    async Task CloseModal()
+    {
+        showGameCompleteModal = false;
+        StateHasChanged();
+        await ResetGame();
     }
 
     private async Task TriggerFlashAnimation()
